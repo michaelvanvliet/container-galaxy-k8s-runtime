@@ -369,11 +369,11 @@ assignment:
   - xcmssplit
   - xcms-blankfilter
   - xcms-dilutionfilter
-- docker_image_override: xcms
-  docker_owner_override: phnmnl
-  docker_repo_override: container-registry.phenomenal-h2020.eu
-  docker_tag_override: dev_v3.0.0_cv0.1.75
-  max_pod_retrials: 1
+- docker_repo_override: docker.io
+  docker_owner_override: korseby
+  docker_image_override: mtbls520
+  docker_tag_override: latest
+  max_pod_retrials: 3
   tools_id:
    - mtbls520_01_mtbls_download
    - mtbls520_02a_raw_extract
@@ -409,7 +409,7 @@ assignment:
    - mtbls520_24_seasons_nmds
 - docker_repo_override: container-registry.phenomenal-h2020.eu
   docker_owner_override: phnmnl
-  docker_image_override: ecomet
+  docker_image_override: xcms
   docker_tag_override: dev_v1.0_cv0.5.24
   max_pod_retrials: 3
   tools_id:
