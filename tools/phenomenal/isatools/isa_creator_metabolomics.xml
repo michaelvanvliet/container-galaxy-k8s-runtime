@@ -1,95 +1,75 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<tool id="isa_creator_metabolomics" name="isa_creator_metabolomics" version="1.0.0">
+<tool id="isa_create_metabolomics" name="create ISA in Galaxy" version="1.0.0">
     <description>interactive tool to create ISA archives</description>
+    
     <requirements>
-        <requirement type="package" version="0.9.4">isatools</requirement>
+        <requirement type="package" version="6.7">click</requirement>
+        <requirement type="package" version="0.9.3">isatools</requirement>
     </requirements>
+    
     <stdio>
-        <exit_code range="1:" />
+        <exit_code range="1:" level="fatal"/>
     </stdio>
-    <command interpreter="python">$script_file</command>
+    
+    <command>
+        python $__tool_directory__/cli.py --parameters_file $inputs
+    </command>
+    
     <configfiles>
-        <!--<configfile name="bash_script_file"> -->
-            <!-- TODO: implement IF to test depending on value of assay_type && and value to acquisition mode (GCMS requires an additional element -->
-       <!-- </configfile>-->
-        <configfile name="script_file">
-from isatools import isatab
-from isatools.create.models import (
-    SampleAssayPlan,
-    TreatmentSequence,
-    INTERVENTIONS,
-    BASE_FACTORS,
-    TreatmentFactory,
-    IsaModelObjectFactory,
-    AssayType,
-    AssayTopologyModifiers
-)
-from isatools.model import Investigation
-# agent_levels = sys.argv[1]  # agent_levels
-# dose_levels = sys.argv[2]  # dose_levels
-# duration_of_exposure_levels = sys.argv[3]  # duration_of_exposure_levels
-# sample_types = sys.argv[4]  # sample_types
-# sample_sizes = sys.argv[5]  # sample_sizes
-group_size = 5
-agent_levels = 'cocaine, calpol'.split(',')
-dose_levels = 'low, high'.split(',')
-duration_of_exposure_levels = 'short, long'.split(',')
-sample_types = 'blood'.split(',')
-sample_sizes = [int(x) for x in '5'.split(',')]
-
-plan = SampleAssayPlan(group_size=group_size)  # if balanced, group_size is fixed
-for sample_type, sample_size in zip(sample_types, sample_sizes):
-    plan.add_sample_type(sample_type)
-    plan.add_sample_plan_record(sample_type, sample_size)
-treatment_factory = TreatmentFactory(
-    intervention_type=INTERVENTIONS['CHEMICAL'], factors=BASE_FACTORS)
-for agent_level in agent_levels:
-    treatment_factory.add_factor_value(BASE_FACTORS[0], agent_level.strip())
-for dose_level in dose_levels:
-    treatment_factory.add_factor_value(BASE_FACTORS[1], dose_level.strip())
-for duration_of_exposure_level in duration_of_exposure_levels:
-    treatment_factory.add_factor_value(BASE_FACTORS[2],
-                                       duration_of_exposure_level.strip())
-treatment_sequence = TreatmentSequence(
-    ranked_treatments=treatment_factory.compute_full_factorial_design())
-isa_object_factory = IsaModelObjectFactory(plan, treatment_sequence)
-
-measurement_type = 'metabolite profiling'
-technology_type = 'mass spectrometry'
-instruments = {'Agilent QTOF'}
-technical_replicates = 2
-injection_modes = {'LC'}
-acquisition_modes = {'positive', 'negative'}
-chromatography_instruments = {'Agilent Q12324A'}
-
-# MSAssayTopologyModifiers class not yet in isatools pip package
-# ms_top_mods = MSAssayTopologyModifiers(
-#     instruments=instruments,
-#     technical_replicates=technical_replicates,
-#     injection_modes=injection_modes,
-#     acquisition_modes=acquisition_modes,
-#     chromatography_instruments=chromatography_instruments)
-
-ms_top_mods = AssayTopologyModifiers(
-    instruments=instruments,
-    technical_replicates=technical_replicates)
-ms_assay_type = AssayType(measurement_type=measurement_type,
-                          technology_type=technology_type)
-
-ms_assay_type.topology_modifiers = ms_top_mods
-plan.add_assay_type(ms_assay_type)
-plan.add_assay_plan_record(sample_type, ms_assay_type)
-
-s = isa_object_factory.create_assays_from_plan()
-i = Investigation()
-s.filename = "s_study.txt"
-i.studies = [s]
-import os
-os.mkdir('isa')
-isatab.dump(isa_obj=i, output_path='isa', i_file_name='i_investigation.txt')
-        </configfile>
+        <inputs name="inputs" />
     </configfiles> 
-    <inputs>       
+    <inputs> 
+        <section name="study_overview" title="Study Description">
+            <param name="study_description" area="True" size="5x25" type="text" label="provide a textual description for the study"></param>
+            <param name="study_pi_first_name" type="text" label="PI first name"></param>
+            <param name="study_pi_last_name" type="text" label="PI last name"></param>
+            <param name="study_pi_email" type="text" label="PI email address"></param>
+            <param name="study_pi_affiliation" type="text" label="PI affiliation"></param>
+           <!-- <repeat name="protocol_record_series" title="Study Protocols">
+                <param name="protocol_name" type="text" label="Protocol name"></param>
+                <param name="protocol_type" type="select" label="Protocol type">
+                    <option value="none selected" selected="True">none selected</option>
+                    <option value="specimen_collection">sample collection</option>
+                    <option value="sample_preparation">sample preparation</option>
+                    <option value="metabolite extraction">metabolite extraction</option>
+                    <option value="derivatization">derivatization</option>
+                    <option value="chromatography" >chromatography</option>
+                    <option value="data_acquisition">data acquisition</option>
+                    <option value="data normalization">data normalization</option>
+                    <option value="data transformation">data transformation</option>
+                    <option value="differential expression analysis">differential expression analysis</option>
+                    <option value="enrichment analysis">enrichment analysis</option>
+                    <option value="enrichment analysis">enrichment analysis</option>
+                    <option>other</option>
+                </param>
+                <param name="protocol_desc" area="True" size="5x25" type="text" label="Protocol Description"></param>
+                <param name="protocol_uri" type="text" label="Protocol URI"></param>
+            </repeat>
+            <param name="study_consent" type="select" label="Consent Information">
+                <option value="none">no restriction</option>               
+                <option value="no-general">no-general methods research</option>
+                <option value="research">research use only</option>
+                <option value="restricted">research-specific restriction</option>
+                <option value="general">general research and clinical care</option>
+                <option value="disease">disease-specific research and clinical care</option>
+                <option value="health">health/medical/biomedical research and clinical care</option>
+                <option value="population">population origins or ancestry research</option>
+            </param>
+            <param name="study_use_condition" type="select" label="Data Use Requirement">
+                <option value="collaboration_required">collaboration required</option>
+                <option value="ethics">ethics approval required</option>
+                <option value="geo">geographical restriction</option>
+                <option value="no_profit">not-for-profit use only</option>
+                <option value="institution-re">institution-specific restriction</option>
+                <option value="project_re">project-specific restriction</option>
+                <option value="user_re">user-specific restriction</option>
+                <option value="pub_mora">publication moratorium</option>
+                <option value="pub_req">publication required</option>
+                <option value="return">return-to-database/resource</option>
+                <option value="time">time limit on use</option>
+                
+            </param> -->
+        </section>
         <section name="Treatment Plan" title="Treatment Plan">
         </section>
             <!-- INPUT FOR SETTING CHARACTERISTICS OF STUDY GROUPS -->
@@ -340,8 +320,7 @@ isatab.dump(isa_obj=i, output_path='isa', i_file_name='i_investigation.txt')
                                    <option value="watergate"></option>
                                    <option value="flip-flop"></option>
                                </param>
-                               <param name="nmr_instrument" type="select" label="nmr instrument">
-                              
+                               <param name="nmr_instrument" type="select" label="nmr instrument">                           
                                    <option value="Bruker 400 Mhz">Bruker 400 MHz spectrometer</option>
                                    <option value="Bruker 500 Mhz">Bruker 500 MHz spectrometer</option>
                                    <option value="Bruker 600 Mhz">Bruker 600 MHz spectrometer</option>
@@ -376,8 +355,6 @@ isatab.dump(isa_obj=i, output_path='isa', i_file_name='i_investigation.txt')
                                    <option value="Varian Unity Inova 500 MHz">Varian Unity Inova 500 MHz spectrometer</option>
                                    <option value="Varian Unity Inova 600 MHz">Varian Unity Inova 600 MHz spectrometer</option>
                                    <option value="Varian VNMRS 600 MHz">Varian VNMRS 600 MHz spectrometer</option>
-                                   
-                                   
                                </param>
                                <param name="magnet" type="text" label="nmr magnet power" argument="--magnet"></param>                             
                                <param name="technical_replicates" type="integer" label="number of technical repeats" argument="--tech_rep" value="1"></param>
@@ -480,9 +457,9 @@ isatab.dump(isa_obj=i, output_path='isa', i_file_name='i_investigation.txt')
         <collection type="list" label="S Files" name="s_files">
             <discover_datasets pattern="(?P&lt;designation&gt;s_.+)\.txt" directory="isa" format="tsv"/>
         </collection>
-        <!--<collection type="list" label="A Files" name="a_files">-->
-            <!--<discover_datasets pattern="(?P&lt;designation&gt;a_.+)\.txt" directory="isa" format="tsv"/>-->
-        <!--</collection>-->
+        <collection type="list" label="A Files" name="a_files">
+            <discover_datasets pattern="(?P&lt;designation&gt;a_.+)\.txt" directory="isa" format="tsv"/>
+        </collection>
     </outputs>
 
     <tests>
