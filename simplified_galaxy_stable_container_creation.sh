@@ -6,6 +6,10 @@ DOCKER_USER=${CONTAINER_USER:-pcm32}
 
 # Uncomment to push intermediate images, otherwise only the images needed for the helm chart are pushed.
 #PUSH_INTERMEDIATE_IMAGES=yes
+PUSH=${PUSH:-yes}
+if [[ $PUSH != yes ]] ; then
+	unset PUSH_INTERMEDIATE_IMAGES
+fi
 
 if [[ ${#DOCKER_REPO} > 0 ]];
 then
@@ -59,7 +63,7 @@ if [ -n $GALAXY_REPO ]
        if [ -n $ANSIBLE_REPO ]
           then
               sed s+quay.io/bgruening/galaxy-base:dev+$GALAXY_BASE_PHENO_TAG+ docker-galaxy-stable/compose/galaxy-init/Dockerfile > docker-galaxy-stable/compose/galaxy-init/Dockerfile_init
-	      FROM=`grep ^FROM ../docker-galaxy-stable/compose/galaxy-init/Dockerfile_init | awk '{ print $2 }'`
+	      FROM=`grep ^FROM docker-galaxy-stable/compose/galaxy-init/Dockerfile_init | awk '{ print $2 }'`
 	      echo "Using FROM $FROM for galaxy init"
 	      DOCKERFILE_INIT_1=Dockerfile_init
        fi
@@ -81,7 +85,7 @@ then
 	DOCKERFILE_INIT_FLAVOUR=Dockerfile_init_tagged
 fi
 docker build $NO_CACHE -t $GALAXY_INIT_PHENO_FLAVOURED_TAG -f $DOCKERFILE_INIT_FLAVOUR .
-docker push $GALAXY_INIT_PHENO_FLAVOURED_TAG 
+[[ $PUSH == yes ]] && docker push $GALAXY_INIT_PHENO_FLAVOURED_TAG 
 
 GALAXY_WEB_K8S_TAG=$DOCKER_REPO$DOCKER_USER/galaxy-web-k8s:$TAG
 
@@ -93,17 +97,17 @@ then
 	DOCKERFILE_WEB=Dockerfile_web
 fi
 docker build $NO_CACHE --build-arg GALAXY_ANSIBLE_TAGS=supervisor,startup,scripts,nginx,k8,k8s -t $GALAXY_WEB_K8S_TAG -f docker-galaxy-stable/compose/galaxy-web/$DOCKERFILE_WEB docker-galaxy-stable/compose/galaxy-web/
-docker push $GALAXY_WEB_K8S_TAG
+[[ $PUSH == yes ]] && docker push $GALAXY_WEB_K8S_TAG
 
 # Build postgres
 POSTGRES_TAG=$DOCKER_REPO$DOCKER_USER/galaxy-postgres:$POSTGRES_VERSION"_for_"$GALAXY_VER_FOR_POSTGRES
 docker build -t $POSTGRES_TAG -f docker-galaxy-stable/compose/galaxy-postgres/Dockerfile docker-galaxy-stable/compose/galaxy-postgres/
-docker push $POSTGRES_TAG
+[[ $PUSH == yes ]] && docker push $POSTGRES_TAG
 
 # Build proftpd
 PROFTPD_TAG=$DOCKER_REPO$DOCKER_USER/galaxy-proftpd:for_galaxy_v$GALAXY_VER_FOR_POSTGRES
 docker build -t $PROFTPD_TAG -f docker-galaxy-stable/compose/galaxy-proftpd/Dockerfile docker-galaxy-stable/compose/galaxy-proftpd/
-docker push $PROFTPD_TAG
+[[ $PUSH == yes ]] && docker push $PROFTPD_TAG
 
 
 echo "Relevant containers:"
