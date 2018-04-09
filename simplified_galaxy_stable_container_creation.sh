@@ -4,12 +4,8 @@ set -e
 DOCKER_REPO=${CONTAINER_REGISTRY:-}
 DOCKER_USER=${CONTAINER_USER:-pcm32}
 
-# Uncomment to push intermediate images, otherwise only the images needed for the helm chart are pushed.
-#PUSH_INTERMEDIATE_IMAGES=yes
-PUSH=${PUSH:-yes}
-if [[ $PUSH != yes ]] ; then
-	unset PUSH_INTERMEDIATE_IMAGES
-fi
+PUSH=${PUSH-no} # Set to "yes" to push images.
+PUSH_INTERMEDIATE_IMAGES=${PUSH_INTERMEDIATE_IMAGES-no} # Set to "yes" to push intermediate images as well. By default only the images needed for the helm chart are pushed.
 
 if [[ ${#DOCKER_REPO} > 0 ]];
 then
@@ -40,15 +36,13 @@ fi
 
 GALAXY_BASE_PHENO_TAG=$DOCKER_REPO$DOCKER_USER/galaxy-base-pheno:$TAG
 
-if [ -n $ANSIBLE_REPO ]
-    then
-       echo "Making custom galaxy-base-pheno:$TAG from $ANSIBLE_REPO at $ANSIBLE_RELEASE"
-       docker build $NO_CACHE --build-arg ANSIBLE_REPO=$ANSIBLE_REPO --build-arg ANSIBLE_RELEASE=$ANSIBLE_RELEASE -t $GALAXY_BASE_PHENO_TAG docker-galaxy-stable/compose/galaxy-base/
-       if [[ ! -z ${PUSH_INTERMEDIATE_IMAGES+x} ]];
-       then
-	   echo "Pushing intermediate image $DOCKER_REPO$DOCKER_USER/galaxy-base-pheno:$TAG"
-           docker push $GALAXY_BASE_PHENO_TAG
-       fi
+if [[ -n $ANSIBLE_REPO ]] ; then
+	echo "Making custom galaxy-base-pheno:$TAG from $ANSIBLE_REPO at $ANSIBLE_RELEASE"
+	docker build $NO_CACHE --build-arg ANSIBLE_REPO=$ANSIBLE_REPO --build-arg ANSIBLE_RELEASE=$ANSIBLE_RELEASE -t $GALAXY_BASE_PHENO_TAG docker-galaxy-stable/compose/galaxy-base/
+	if [[ $PUSH == yes && $PUSH_INTERMEDIATE_IMAGES == yes ]] ; then
+		echo "Pushing intermediate image $DOCKER_REPO$DOCKER_USER/galaxy-base-pheno:$TAG"
+		docker push $GALAXY_BASE_PHENO_TAG
+	fi
 fi
 
 GALAXY_RELEASE=release_17.09_plus_isa_k8s_resource_limts
@@ -68,11 +62,10 @@ if [ -n $GALAXY_REPO ]
 	      DOCKERFILE_INIT_1=Dockerfile_init
        fi
        docker build $NO_CACHE --build-arg GALAXY_REPO=$GALAXY_REPO --build-arg GALAXY_RELEASE=$GALAXY_RELEASE --build-arg ISATOOLS_LITE_INSTALL=True -t $GALAXY_INIT_PHENO_TAG -f docker-galaxy-stable/compose/galaxy-init/$DOCKERFILE_INIT_1 docker-galaxy-stable/compose/galaxy-init/
-       if [[ ! -z ${PUSH_INTERMEDIATE_IMAGES+x} ]];
-       then
-	   echo "Pushing intermediate image $GALAXY_INIT_PHENO_TAG"
-           docker push $GALAXY_INIT_PHENO_TAG
-       fi
+	if [[ $PUSH == yes && $PUSH_INTERMEDIATE_IMAGES == yes ]] ; then
+		echo "Pushing intermediate image $GALAXY_INIT_PHENO_TAG"
+		docker push $GALAXY_INIT_PHENO_TAG
+	fi
 fi
 
 GALAXY_INIT_PHENO_FLAVOURED_TAG=$DOCKER_REPO$DOCKER_USER/galaxy-init-pheno-flavoured:$TAG
